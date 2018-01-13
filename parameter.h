@@ -15,4 +15,7 @@ struct Parameter
 	int		workersInVespene = 0;
 	int		previousTime = -1;
 	int		wasJsonWritten;
+	int		increment = 1;
+	int		idNumber;
+	int		maxTime = 1000;
 };
