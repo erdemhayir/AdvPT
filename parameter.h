@@ -17,5 +17,5 @@ struct Parameter
 	int		wasJsonWritten;
 	int		increment = 1;
 	int		idNumber;
-	int		maxTime = 1000;
+	int		mme = 1000;
 };
