@@ -4,78 +4,151 @@
 #include <string>
 #include <map>
 #include "terran.h"
+#include "protoss.h"
 #include "json.h"
 #include "simulation.h"
+#include "simulation_protoss.h"
 #include "parameter.h"
 
 using namespace std;
 
 int main(int argc, char const *argv[])
 {
-	Parameter param;
-	Terran *terran	= new Terran();
-	Simulation *sim = new Simulation();
+    bool race = true; //true: Protoss False: Protoss
+    if(!race){
+        Parameter param;
+        Terran *terran	= new Terran();
 
-	int takingTooLong = 0;
+        //Protoss code seeing
+        //Protoss *protoss = new Protoss();
 
-	ofstream json;
-	json.open("stdout.json");
-	json << "{\n \"buildlistValid\" : 1,\n \"game\": \"sc2-hots-terran\",\n \"initialUnits\": {\n \"scv\": [\n \"init_scv_00\",\n \"init_scv_01\",\n \"init_scv_02\",\n \"init_scv_03\",\n \"init_scv_04\",\n \"init_scv_05\"],\n \"command_center\": [\"init_command_center\"]},\n \"messages\" : [\n";
-	json.close();
+        Simulation *sim = new Simulation();
 
-	string actualEvent;
-	ifstream fin;
-	fin.open("terran.txt");
-	fin >> actualEvent;
+        int takingTooLong = 0;
 
-	// ---------- Loop ------------- //
-	do
-	{
-		terran->start.clear();
-		sim->buildSuccess = 0;
-		param.wasJsonWritten = 0;
-		++takingTooLong;
-		++param.Time;
-		param.minerals += param.workersInMinerals * 0.7;
-		param.vespene += param.workersInVespene * 0.35;
+        ofstream json;
+        json.open("stdout.json");
+        json << "{\n   \"buildlistValid\" : \"1\",\n   \"game\": \"sc2-hots-terran\",\n   initialUnits: {\n     scv: [\n         \"init_scv_00\",\n         \"init_scv_01\",\n         \"init_scv_02\",\n         \"init_scv_03\",\n         \"init_scv_04\",\n         \"init_scv_05\"],\n      command_center: [\"init_command_center\"]},\n   \"messages\" : [\n";
+        json.close();
 
-		if (param.energyCollect)
-		{
-			if (param.energy < 200) param.energy += 0.5625;
-			else param.energy = 200;
-		}
+        string actualEvent;
+        ifstream fin;
+        fin.open("terran.txt");
+        fin >> actualEvent;
 
-		if (takingTooLong == 35)
-		{
-			cout << "hi!" << endl;
-		}
+        // ---------- Loop ------------- //
+        do
+        {
+            terran->start.clear();
+            sim->buildSuccess = 0;
+            param.wasJsonWritten = 0;
+            ++takingTooLong;
+            ++param.Time;
+            param.minerals += param.workersInMinerals * 0.7;
+            param.vespene += param.workersInVespene * 0.35;
 
-		// ---------- SIMULATION ------------- //
-		sim->run(sim, terran, param, actualEvent, fin);
+            if (param.energyCollect)
+            {
+                if (param.energy < 200) param.energy += 0.5625;
+                else param.energy = 200;
+            }
 
-		OUT(terran, param);	// prints the details each step
+            // ---------- SIMULATION ------------- //
+            sim->run(sim, terran, param, actualEvent, fin);
 
-		if (param.wasJsonWritten == 1) finishJson();
-		if (param.wasJsonWritten == 2) finishJsonEnd();
+            //OUT();	// prints the details each step
 
-	} while (!sim->error && takingTooLong < param.maxTime);
+            if (param.wasJsonWritten == 1) finishJson();
+            if (param.wasJsonWritten == 2) finishJsonEnd();
 
-	json.open("stdout.json", fstream::app);
-	json << "]\n }";
-	json.close();
+        } while (!sim->error && takingTooLong < 500);
 
-	if (takingTooLong == param.maxTime)
-		sim->error = -1;		// Buildlist is invalid
+        json.open("stdout.json", fstream::app);
+        json << "]\n }";
+        json.close();
 
-	switch (sim->error)
-	{
-	case 1:
-		stdoutput();			// Buildlist is successful. Output in stdout.json
-		break;
-	default:
-		remove("stdout.json");	// Buildlist is invalid
-		cout << "{ \"game\": \"sc2-hots-terran\",\n\"buildlistValid\" : 0 \n}";	
-	}
+        if (takingTooLong == 500)
+            sim->error = -1;		// Buildlist is invalid
 
-	return 0;
+        switch (sim->error)
+        {
+            case 1:
+                stdoutput();			// Buildlist is successful. Output in stdout.json
+                break;
+            default:
+                remove("stdout.json");	// Buildlist is invalid
+                cout << "{ \"game\": \"sc2-hots-terran\",\n\"buildlistValid\" : \"0\" \n}";
+        }
+        system("pause");
+        return 0;
+    } else{
+        Parameter param;
+        Protoss *protoss	= new Protoss();
+
+        //Protoss code seeing
+        //Protoss *protoss = new Protoss();
+
+        Simulation_P *sim = new Simulation_P();
+
+        int takingTooLong = 0;
+
+        ofstream json;
+        json.open("stdout.json");
+        //json << "{\n   \"buildlistValid\" : \"1\",\n   \"game\": \"sc2-hots-protoss\",\n   initialUnits: {\n     probe: [\n         \"init_probe_00\",\n         \"init_probe_01\",\n         \"init_probe_02\",\n         \"init_probe_03\",\n         \"init_probe_04\",\n         \"init_probe_05\"],\n      command_center: [\"init_nexus\"]},\n   \"messages\" : [\n";
+        json << "{\n \"buildlistValid\" : 1,\n \"game\": \"sc2-hots-protoss\",\n \"initialUnits\": {\n \"probe\": [\n \"init_probe_00\",\n \"init_probe_01\",\n \"init_probe_02\",\n \"init_probe_03\",\n \"init_probe_04\",\n \"init_probe_05\"],\n \"nexus\": [\"init_nexus\"]},\n \"messages\" : [\n";
+        json.close();
+
+        string actualEvent;
+        ifstream fin;
+        fin.open("protoss.txt");
+        fin >> actualEvent;
+
+        // ---------- Loop ------------- //
+        do
+        {
+            protoss->start.clear();
+            sim->buildSuccess = 0;
+            param.wasJsonWritten = 0;
+            ++takingTooLong;
+            ++param.Time;
+            param.minerals += param.workersInMinerals * 0.7;
+            param.vespene += param.workersInVespene * 0.35;
+
+            //TODO change this part
+            if (param.energyCollect)
+            {
+                //TODO I changed it 200 to 100 cuz in protoss it is like that
+                if (param.energy < 100) param.energy += 0.5625;
+                else param.energy = 100;
+            }
+
+            // ---------- SIMULATION ------------- //
+            sim->run(sim, protoss, param, actualEvent, fin);
+
+            OUT(protoss,param);	// prints the details each step
+
+            if (param.wasJsonWritten == 1) finishJson();
+            if (param.wasJsonWritten == 2) finishJsonEnd();
+
+        } while (!sim->error && takingTooLong < 1000);
+
+        json.open("stdout.json", fstream::app);
+        json << "]\n }";
+        json.close();
+
+        if (takingTooLong == 1000)
+            sim->error = -1;		// Buildlist is invalid
+
+        switch (sim->error)
+        {
+            case 1:
+                stdoutput();			// Buildlist is successful. Output in stdout.json
+                break;
+            default:
+                //remove("stdout.json");	// Buildlist is invalid
+                cout << "{ \"game\": \"sc2-hots-protoss\",\n\"buildlistValid\" : \"0\" \n}";
+        }
+        //return 0;
+    }
+
 }
