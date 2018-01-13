@@ -45,7 +45,7 @@ int main(int argc, char const *argv[])
 			else param.energy = 200;
 		}
 
-		if (takingTooLong == 73)
+		if (takingTooLong == 35)
 		{
 			cout << "hi!" << endl;
 		}
@@ -58,13 +58,13 @@ int main(int argc, char const *argv[])
 		if (param.wasJsonWritten == 1) finishJson();
 		if (param.wasJsonWritten == 2) finishJsonEnd();
 
-	} while (!sim->error && takingTooLong < 1000);
+	} while (!sim->error && takingTooLong < param.maxTime);
 
 	json.open("stdout.json", fstream::app);
 	json << "]\n }";
 	json.close();
 
-	if (takingTooLong == 1000)
+	if (takingTooLong == param.maxTime)
 		sim->error = -1;		// Buildlist is invalid
 
 	switch (sim->error)
