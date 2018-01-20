@@ -3,11 +3,7 @@
 #include <fstream>
 
 Terran::Terran()	// Constructor
-{
-	vector<vector<int>> beingCreated(1, vector<int>(2, -1));	// Matrix (1 row, 2 columns) initialized with -1
-	vector<int>			workerIDs;
-	vector<int>			finish;
-	
+{	
 	initMap();	// First updates the map with all possible builds
 	initBuildDetails();	// Then updates the matrix with the data from the file
 	initIDs();
@@ -65,7 +61,8 @@ void Terran::initIDs()
 	buildingIDsMap.insert(pair<string, vector<int>>("init_command_center", { -1,-1 }));
 	for (int i = 0; i < 6; ++i)
 	{
-		initWorkerIDs[i] = -1;
+		for (int j = 0; j < 2; ++ j)
+			initWorkerIDs[i][j] = -1;
 	}
 }
 
