@@ -13,7 +13,7 @@ void OptimizationProtoss::pushOptimization(Protoss &ob, Parameter &param, std::s
     std::vector <int> tempSkeloton;
     int mapNumber = ob.buildList[pushObject];
     skeletonList.push_back(optPair(mapNumber, false));
-
+    bool needVespene = false;
 
 
     //Now check skeleton for false case
@@ -26,8 +26,84 @@ void OptimizationProtoss::pushOptimization(Protoss &ob, Parameter &param, std::s
 
             if (ob.buildDetails[mapNumber][2] > 0 )
             {
-                skeletonList.push_back(optPair(25, true)); //assimulator
+                needVespene = true;
+              /*  bool found = (std::find(skeletonList.begin(), skeletonList.end(), optPair (25, true)) != skeletonList.end());
+                int count = std::count (skeletonList.begin(), skeletonList.end(), optPair (25, true));
+                if (!found){
+                    //skeletonList.push_back(optPair(25, true)); //assimulator
+
+                }
+                else{
+                    if(count >2){
+                        skeletonList.remove(optPair(25, true));
+                        skeletonList.push_back(optPair(25, true));
+                    }
+                    else{
+                        skeletonList.push_back(optPair(25, true)); //assimulator
+                    }
+
+                }*/
+            } else{
+                needVespene = false;
             }
+
+            std::random_device rd;     // only used once to initialise (seed) engine
+            std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
+            std::uniform_int_distribution<int> uni(0,3); // guaranteed unbiased
+
+            auto random_worker = uni(rng);
+
+            for (int i = 0; i < random_worker; ++i) {
+                skeletonList.push_back(optPair(0, true));
+            }
+
+            //Randomly assign Assimulator
+            if (!needVespene){
+                int count = std::count (skeletonList.begin(), skeletonList.end(), optPair (25, true));
+                if (count>2){
+                    //DO Nothing
+                }
+                else if (count==1){
+                    std::uniform_int_distribution<int> uni_Ass(1,1);
+                    auto random_assimulator = uni_Ass(rng);
+                    for (int i = 0; i < random_assimulator; ++i) {
+                        skeletonList.push_back(optPair(25, true));
+                    }
+                }
+
+            } else{
+                skeletonList.remove(optPair (25, true));
+
+
+                    std::uniform_int_distribution<int> uni_Ass(1,2);
+                    auto random_assimulator = uni_Ass(rng);
+
+                    for (int i = 0; i < random_assimulator; ++i) {
+                        skeletonList.push_back(optPair(25, true));
+                    }
+
+
+
+            }
+
+
+            /*//Depend on time put some workers
+            if (ob.buildDetails[mapNumber][3] > 50 ){
+
+
+            }
+            if (ob.buildDetails[mapNumber][3] <= 50 && ob.buildDetails[mapNumber][3] > 25){
+                for (int i = 0; i < 1; ++i) {
+                    skeletonList.push_back(optPair(0, true));
+                }
+
+            }*/
+
+            if (param.totalSupCost - param.supplyUsed - ob.buildDetails[mapNumber][4] < 0)
+            {
+                skeletonList.push_back(optPair(15, true));
+            }
+
 
 
             if(dependent == -1){
