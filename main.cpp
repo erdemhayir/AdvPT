@@ -7,65 +7,78 @@
 #include "json.h"
 #include "simulation.h"
 #include "parameter.h"
+#include "optimization.h"
+#include <chrono>
+
+using get_time = chrono::steady_clock;
+typedef std::chrono::time_point<std::chrono::steady_clock> timer;
+typedef std::chrono::duration<float> fsec;
 
 using namespace std;
 
 int main(int argc, char const *argv[])
 {
 	Parameter param;
-	Terran *terran	= new Terran();
-	Simulation *sim = new Simulation();
 
-	int takingTooLong = 0;
+	std:string objectName = "viking";
 
-	ofstream json;
-	json.open("stdout.json");
-	json << "{\n \"buildlistValid\" : 1,\n \"game\": \"sc2-hots-terran\",\n \"initialUnits\": {\n \"scv\": [\n \"init_scv_00\",\n \"init_scv_01\",\n \"init_scv_02\",\n \"init_scv_03\",\n \"init_scv_04\",\n \"init_scv_05\"],\n \"command_center\": [\"init_command_center\"]},\n \"messages\" : [\n";
-	json.close();
+	const timer start = get_time::now();
+	timer end;
+	fsec diff;
 
-	string actualEvent;
-	ifstream fin;
-	fin.open("terran.txt");
-	fin >> actualEvent;
+	int	minTime = param.maxTime;
+	std::list<optPair> finalBuildlist;
 
-	// ---------- Loop ------------- //
 	do
 	{
-		terran->start.clear();
-		sim->buildSuccess = 0;
-		param.wasJsonWritten = 0;
-		++takingTooLong;
-		++param.Time;
-		param.minerals += param.workersInMinerals * 0.7 + param.mule * 0.7;
-		param.vespene += param.workersInVespene * 0.35;
+		Parameter temp_param = param;
 
-		// ---------- SIMULATION ------------- //
-		sim->run(sim, terran, param, actualEvent, fin);
+		Terran *terran = new Terran();
+		Simulation *sim = new Simulation();
+		Json json_ob;
 
-		OUT(terran, param);	// prints the details each step
+		Optimization *opt = new Optimization();
 
-		if (param.wasJsonWritten == 1) finishJson();
-		if (param.wasJsonWritten == 2) finishJsonEnd();
+		opt->pushOptimization(*terran, temp_param, objectName);
+		sim->simulation(sim, terran, temp_param, json_ob);
 
-	} while (!sim->error && takingTooLong < param.maxTime);
+		if (temp_param.totalTime < minTime)
+		{
+			minTime = temp_param.totalTime;
+			finalBuildlist = opt->skeletonList;
+		}
 
-	json.open("stdout.json", fstream::app);
-	json << "]\n }";
-	json.close();
-
-	if (takingTooLong == param.maxTime)
-		sim->error = -1;		// Buildlist is invalid
-
-	switch (sim->error)
+		end = get_time::now();
+		diff = end - start;
+	}while (diff.count() < 10.0);
+	
 	{
-	case 1:
-		stdoutput();			// Buildlist is successful. Output in stdout.json
-		break;
-	default:
-		remove("stdout.json");	// Buildlist is invalid
-		cout << "{ \"game\": \"sc2-hots-terran\",\n\"buildlistValid\" : 0 \n}";	
+		Terran *terran = new Terran();
+		Simulation *sim = new Simulation();
+		Json json_ob;
+
+		ofstream skeout;
+		skeout.open("terran.txt");
+
+		for (auto it = finalBuildlist.crbegin(); it != finalBuildlist.crend(); ++it)
+		{
+			//std::cout << it->first << std::endl;
+			int mapNumber = it->first;
+			Pair m = *find_if
+			(terran->buildList.begin(), terran->buildList.end(),
+				[mapNumber](const Pair &p) { return p.second == mapNumber; }
+			);
+			skeout << m.first << "\n";
+
+		}
+		skeout.close();
+
+		sim->simulationFinal(sim, terran, param, json_ob);
+
+		//json_ob.stdoutput();
 	}
-	//system("pause");
+
+	system("pause");
 
 	return 0;
 	
