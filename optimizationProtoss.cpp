@@ -28,21 +28,7 @@ void OptimizationProtoss::pushOptimization(Protoss &ob, Parameter &param, std::s
             {
                 needVespene = true;
               /*  bool found = (std::find(skeletonList.begin(), skeletonList.end(), optPair (25, true)) != skeletonList.end());
-                int count = std::count (skeletonList.begin(), skeletonList.end(), optPair (25, true));
-                if (!found){
-                    //skeletonList.push_back(optPair(25, true)); //assimulator
-
-                }
-                else{
-                    if(count >2){
-                        skeletonList.remove(optPair(25, true));
-                        skeletonList.push_back(optPair(25, true));
-                    }
-                    else{
-                        skeletonList.push_back(optPair(25, true)); //assimulator
-                    }
-
-                }*/
+                int count = std::count (skeletonList.begin(), skeletonList.end(), optPair (25, true));                }*/
             } else{
                 needVespene = false;
             }
@@ -55,15 +41,18 @@ void OptimizationProtoss::pushOptimization(Protoss &ob, Parameter &param, std::s
 
             for (int i = 0; i < random_worker; ++i) {
                 skeletonList.push_back(optPair(0, true));
+                param.supplyUsed+=ob.buildDetails[0][4];
             }
 
             //Randomly assign Assimulator
-            if (!needVespene){
+            if (!needVespene)
+            {
                 int count = std::count (skeletonList.begin(), skeletonList.end(), optPair (25, true));
                 if (count>2){
                     //DO Nothing
                 }
-                else if (count==1){
+                else if (count==1)
+                {
                     std::uniform_int_distribution<int> uni_Ass(1,1);
                     auto random_assimulator = uni_Ass(rng);
                     for (int i = 0; i < random_assimulator; ++i) {
@@ -86,23 +75,16 @@ void OptimizationProtoss::pushOptimization(Protoss &ob, Parameter &param, std::s
 
             }
 
-
-            /*//Depend on time put some workers
-            if (ob.buildDetails[mapNumber][3] > 50 ){
-
-
+            if (mapNumber<14){
+                param.supplyUsed+=ob.buildDetails[mapNumber][4];
             }
-            if (ob.buildDetails[mapNumber][3] <= 50 && ob.buildDetails[mapNumber][3] > 25){
-                for (int i = 0; i < 1; ++i) {
-                    skeletonList.push_back(optPair(0, true));
-                }
 
-            }*/
-
-            if (param.totalSupCost - param.supplyUsed - ob.buildDetails[mapNumber][4] < 0)
+            if (param.totalSupCost - param.supplyUsed /*- ob.buildDetails[mapNumber][4] */< 0)
             {
                 skeletonList.push_back(optPair(15, true));
             }
+
+
 
 
 
