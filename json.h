@@ -5,11 +5,13 @@
 #include <iostream>
 #include <string>
 #include "terran.h"
-#include "protoss.h"
 #include "parameter.h"
 
-void finishJson();
-void finishJsonEnd();
-void stdoutput();
-void OUT(Terran *ob, Parameter param); //for debugging!
-void OUT(Protoss *ob, Parameter param); //for debugging!
+class Json {
+public:
+	Json() {};
+	void finishJson();
+	void finishJsonEnd();
+	void stdoutput();
+	void OUT(Terran *ob, Parameter param); //for debugging!
+};
