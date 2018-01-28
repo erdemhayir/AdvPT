@@ -115,7 +115,7 @@ int Simulation::createCurrentBuild(string actualEvent, Terran &ob, Parameter &pa
 			do
 			{
 				++j;
-			} while (ob.initWorkerIDs[j][0] != -1 && (j <= sizeof(ob.initWorkerIDs) / sizeof(int) - 1));
+			} while (ob.initWorkerIDs[j][0] != -1 && (j <= sizeof(ob.initWorkerIDs) / (2 * sizeof(int)) - 1));
 			if (j < 6)
 			{
 				ob.initWorkerIDs[j][0] = mapNumber;
@@ -124,10 +124,26 @@ int Simulation::createCurrentBuild(string actualEvent, Terran &ob, Parameter &pa
 			}
 			else
 			{
-				int unsigned h = -1;
+				MapVec::iterator it = ob.workerIDsMap.begin();
+				MapVec::iterator itend = ob.workerIDsMap.end();
 				do
 				{
-					++h;
+					if (it->second[0] == -1)
+					{
+						it->second[0] = mapNumber;
+						param.idNumber = stoi(it->first.substr(it->first.length() - 2));
+						break;
+					}
+					++it;
+				} while (it != itend);
+				if (it == itend)
+					return 0;
+
+
+				/*
+				do
+				{
+					
 				} while (ob.workerIDs[h][0] != -1 && (h <= ob.workerIDs.size() - 1));
 				if (h == ob.workerIDs.size() - 1)
 				{
@@ -137,7 +153,7 @@ int Simulation::createCurrentBuild(string actualEvent, Terran &ob, Parameter &pa
 				{
 					ob.workerIDs[h][0] = mapNumber;
 					param.idNumber = h;
-				}
+				}*/
 			}
 			--param.workersInMinerals;
 		}
@@ -568,7 +584,16 @@ void Simulation::addBeingCreated(int mapNumber, Terran &ob, Parameter &param)
 				ob.initWorkerIDs[param.idNumber][1] = stoi(name.substr(name.length() - 2));
 				param.idInitWorker = 0;
 			}
-			else ob.workerIDs[param.idNumber][1] = stoi(name.substr(name.length() - 2));
+			else //ob.workerIDs[param.idNumber][1] = stoi(name.substr(name.length() - 2));
+			{
+				string id = to_string(param.idNumber);
+				string worker;
+				if (param.idNumber < 10)
+					worker = "scv_0" + id;
+				else
+					worker = "scv_" + id;
+				ob.workerIDsMap.find(worker)->second[1] = stoi(name.substr(name.length() - 2));
+			}
 		}
 
 		if (mapNumber == 28 || mapNumber == 30 || mapNumber == 32)	//barracks_with_reactor_001
@@ -906,7 +931,7 @@ void Simulation::checkFinishedBuildings(Terran &ob, Parameter &param)
 			if (mapNumber == 16)	// refinery distribution
 			{
 				int workers_available = 0;
-				for (int unsigned j = 0; j < sizeof(ob.initWorkerIDs) / sizeof(int); ++j)
+				for (int unsigned j = 0; j < sizeof(ob.initWorkerIDs) / (2 * sizeof(int)); ++j)
 				{
 					if (ob.initWorkerIDs[j][0] == -1)
 					{
@@ -918,15 +943,32 @@ void Simulation::checkFinishedBuildings(Terran &ob, Parameter &param)
 				}
 				if (workers_available < 3)
 				{
-					for (int unsigned j = 0; j < ob.workerIDs.size(); ++j)
+					if (ob.workerIDsMap.size() > 0)
 					{
-						if (ob.workerIDs[j][0] == -1)
+						MapVec::iterator it = ob.workerIDsMap.begin();
+						MapVec::iterator itend = ob.workerIDsMap.end();
+						do
 						{
-							ob.workerIDs[j][0] = -2;	//refinery
-							++workers_available;
-							if (workers_available == 3)
-								break;
-						}
+							if (it->second[0] == -1)
+							{
+								it->second[0] = -2;		//refinery
+								++workers_available;
+								if (workers_available == 3)
+									break;
+							}
+							++it;
+						} while (it != itend);
+
+						/*for (int unsigned j = 0; j < ob.workerIDs.size(); ++j)
+						{
+							if (ob.workerIDs[j][0] == -1)
+							{
+								ob.workerIDs[j][0] = -2;	//refinery
+								++workers_available;
+								if (workers_available == 3)
+									break;
+							}
+						}*/
 					}
 				}
 				param.workersInVespene = param.workersInVespene + workers_available;
@@ -1174,17 +1216,31 @@ void Simulation::writeJson(string type, int mapNumber, Terran &ob, Parameter &pa
 				++j;
 				if (ob.initWorkerIDs[j][1] == param.idNumber && ob.initWorkerIDs[j][0] == mapNumber)
 					break;
-			} while (j <= sizeof(ob.initWorkerIDs) / sizeof(int) - 1);
-			if (j > sizeof(ob.initWorkerIDs) / sizeof(int) - 1)
+			} while (j <= sizeof(ob.initWorkerIDs) / (2 * sizeof(int)) - 1);
+			if (j > sizeof(ob.initWorkerIDs) / (2 * sizeof(int)) - 1)
 			{
+
+				MapVec::iterator it = ob.workerIDsMap.begin();
+				MapVec::iterator itend = ob.workerIDsMap.end();
 				do
 				{
 					++h;
-					if (ob.initWorkerIDs[j][1] == param.idNumber && ob.initWorkerIDs[j][0] == mapNumber)
+					if (it->second[1] == param.idNumber && it->second[0] == mapNumber)
+					{
 						break;
-				} while (h <= ob.workerIDs.size() - 1);
+					}
+					++it;
+					
+				} while (it != itend);
+
+				/*do
+				{
+					++h;
+					if (ob.workerIDs[j][1] == param.idNumber && ob.workerIDs[j][0] == mapNumber)
+						break;
+				} while (h <= ob.workerIDs.size() - 1);*/
 			}
-			if (j <= sizeof(ob.initWorkerIDs) / sizeof(int) - 1)
+			if (j <= sizeof(ob.initWorkerIDs) / (2 * sizeof(int)) - 1)
 			{
 				Pair m = *find_if
 				(ob.initWorkerIDsMap.begin(), ob.initWorkerIDsMap.end(), [j](const Pair &p)
@@ -1218,8 +1274,16 @@ void Simulation::writeJson(string type, int mapNumber, Terran &ob, Parameter &pa
 				}
 				else
 				{
-					ob.workerIDs[h][0] = -1;
-					ob.workerIDs[h][1] = -1;
+					string id = to_string(h);
+					string worker;
+					if (h < 10)
+						worker = "scv_0" + id;
+					else
+						worker = "scv_" + id;
+					ob.workerIDsMap.find(worker)->second[0] = -1;
+					ob.workerIDsMap.find(worker)->second[1] = -1;
+					/*ob.workerIDs[h][0] = -1;
+					ob.workerIDs[h][1] = -1;*/
 				}
 			}		
 		}
@@ -1593,5 +1657,59 @@ void Simulation::run(Simulation *sim, Terran *terran, Parameter &param, string &
 				error = 1;		// We've done!
 			}
 		}
+	}
+}
+
+void Simulation::simulation(Simulation *sim, Terran *terran, Parameter &param, Json &json_ob)
+{
+	int takingTooLong = 0;
+
+	ofstream json;
+	json.open("stdout.json");
+	json << "{\n \"buildlistValid\" : 1,\n \"game\": \"sc2-hots-terran\",\n \"initialUnits\": {\n \"scv\": [\n \"init_scv_00\",\n \"init_scv_01\",\n \"init_scv_02\",\n \"init_scv_03\",\n \"init_scv_04\",\n \"init_scv_05\"],\n \"command_center\": [\"init_command_center\"]},\n \"messages\" : [\n";
+	json.close();
+
+	string actualEvent;
+	ifstream fin;
+	fin.open("terran.txt");
+	fin >> actualEvent;
+
+	// ---------- Loop ------------- //
+	do
+	{
+		terran->start.clear();
+		sim->buildSuccess = 0;
+		param.wasJsonWritten = 0;
+		++takingTooLong;
+		++param.Time;
+		param.minerals += param.workersInMinerals * 0.7 + param.mule * 0.7;
+		param.vespene += param.workersInVespene * 0.35;
+
+		// ---------- SIMULATION ------------- //
+		sim->run(sim, terran, param, actualEvent, fin);
+
+		json_ob.OUT(terran, param);	// prints the details each step
+
+		if (param.wasJsonWritten == 1) json_ob.finishJson();
+		if (param.wasJsonWritten == 2) json_ob.finishJsonEnd();
+
+	} while (!sim->error && takingTooLong < param.maxTime);
+
+	json.open("stdout.json", fstream::app);
+	json << "]\n }";
+	json.close();
+
+	if (takingTooLong == param.maxTime)
+		sim->error = -1;		// Buildlist is invalid
+
+	switch (sim->error)
+	{
+	case 1:
+		//json_ob.stdoutput();			// Buildlist is successful. Output in stdout.json
+		param.totalTime = takingTooLong;
+		break;
+	default:
+		remove("stdout.json");	// Buildlist is invalid
+		cout << "{ \"game\": \"sc2-hots-terran\",\n\"buildlistValid\" : 0 \n}";
 	}
 }

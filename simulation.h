@@ -1,5 +1,6 @@
 #pragma once
 
+#include "json.h"
 #include "terran.h"
 #include "parameter.h"
 #include <sstream>
@@ -25,4 +26,6 @@ public:
 
 	// collects all the functions above
 	void run(Simulation *sim, Terran *terran, Parameter &param, string &actualEvent, ifstream &fin);
+
+	void simulation(Simulation *sim, Terran *terran, Parameter &param, Json &json_ob);
 };
