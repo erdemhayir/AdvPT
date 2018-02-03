@@ -11,7 +11,9 @@ void Optimization::pushOptimization(Terran &ob, Parameter &param, std::string pu
     std::vector <int> tempSkeloton;
     int mapNumber = ob.buildList[pushObject];
     skeletonList.push_back(optPair(mapNumber, false));
-	bool needVespene = false;
+
+	std::random_device rd;
+	std::mt19937 rng(rd());
 
     for (auto it = skeletonList.begin();it != skeletonList.end();++it){
         if(!it->second){
@@ -19,67 +21,12 @@ void Optimization::pushOptimization(Terran &ob, Parameter &param, std::string pu
             int dependent = ob.buildDetails[mapNumber][9];
             int producedby = ob.buildDetails[mapNumber][8];
 
-			if (ob.buildDetails[mapNumber][2] > 0)	//refinery
-			{
-				needVespene = true;
-			}
-				/*bool flag = (std::find(skeletonList.begin(), skeletonList.end(), optPair(16, true)) != skeletonList.end());
-				if (!flag)
-					skeletonList.push_back(optPair(16, true)); 
-					needVespene = true;*/
-			else
-			{
-				/*skeletonList.remove(optPair(16, true));
-				skeletonList.push_back(optPair(16, true));*/
-				needVespene = false;
-			}
-
-			std::random_device rd;
-			std::mt19937 rng(rd());
 			std::uniform_int_distribution<int> uni(0, 3);
 
 			auto random_worker = uni(rng);
 
 			for (int i = 0; i < random_worker; ++i)
 				skeletonList.push_back(optPair(0, true));
-
-			//Randomly assign Assimulator
-			if (!needVespene) {
-				int count = std::count(skeletonList.begin(), skeletonList.end(), optPair(16, true));
-				if (count > 2)
-				{
-					//DO Nothing
-				}
-				else if (count == 1)
-				{
-					std::uniform_int_distribution<int> uni_Ass(1, 1);
-					auto random_assimulator = uni_Ass(rng);
-					for (int i = 0; i < random_assimulator; ++i)
-					{
-						skeletonList.push_back(optPair(16, true));
-					}
-				}
-			}
-			else
-			{
-				skeletonList.remove(optPair(16, true));
-
-
-				std::uniform_int_distribution<int> uni_Ass(1, 2);
-				auto random_assimulator = uni_Ass(rng);
-
-				for (int i = 0; i < random_assimulator; ++i)
-					skeletonList.push_back(optPair(16, true));
-			}
-
-			/*if (mapNumber < 13) {
-				param_temp.supplyUsed += ob.buildDetails[mapNumber][4];
-			}
-
-			if (param_temp.totalSupCost - param_temp.supplyUsed < 0)
-			{
-				skeletonList.push_back(optPair(27, true));
-			}*/
 
             if(dependent == -1){
 
@@ -91,7 +38,6 @@ void Optimization::pushOptimization(Terran &ob, Parameter &param, std::string pu
 
             if (ob.buildDetails[producedby][0] == 0 && producedby != 0){
                 tempSkeloton.push_back(producedby);
-                //skeletonList.push_back(producedby);
             }
 
             //For same level adding producedby and dependency at the same time
@@ -106,56 +52,116 @@ void Optimization::pushOptimization(Terran &ob, Parameter &param, std::string pu
         }
     }
 
-    ofstream skeout;
-    skeout.open("terran_temp.txt");
-
+	int vespene_position = 0,
+		count = 0;
+	
     for (auto it = skeletonList.crbegin(); it != skeletonList.crend(); ++it)
     {
-        //std::cout<<it->first<<std::endl;
         mapNumber = it->first;
         Pair m = *find_if
                 (ob.buildList.begin(), ob.buildList.end(),
                  [mapNumber](const Pair &p) { return p.second == mapNumber; }
                 );
-        skeout << m.first<<"\n";
-    }
-    skeout.close();
 
+		if (!vespene_position && ob.buildDetails[mapNumber][2] > 0)
+			vespene_position = count;
+
+		skeleton_vector.push_back(m.first);
+
+		++count;
+    }
+
+	count = 0;
 	param_temp = param;
-	ifstream temp("terran_temp.txt");
+
+	string actualEvent;
+	int random_n_refinery = 0;
+	int n_refinery = 0;
+	if (vespene_position)
+	{
+		std::uniform_int_distribution<int> uni(1, 2);
+		random_n_refinery = uni(rng);
+	}
+
+	auto it = skeleton_vector.begin();
+	do
+	{
+		actualEvent = *it;
+		mapNumber = ob.buildList[actualEvent];
+
+		if (mapNumber < 13) {
+			param_temp.supplyUsed += ob.buildDetails[mapNumber][4];
+		}
+		if (param_temp.totalSupCost - param_temp.supplyUsed < 0)
+		{
+			std::uniform_int_distribution<int> uni(0, count);
+			auto random_supply_depot_position = uni(rng);
+
+			int position = 0;
+			auto it2 = skeleton_vector.begin();
+			do
+			{
+				if (position == random_supply_depot_position)
+				{
+					skeleton_vector.insert(it2,"supply_depot");
+					break;
+				}
+
+				++position;
+				++it2;
+			} while (it2 != skeleton_vector.end());
+
+			param_temp.totalSupCost += 8;
+
+			++count;
+			++vespene_position;
+		}
+
+		if (random_n_refinery && vespene_position == count)
+		{
+			do // comment out do-while loop for 2 refineries one behind the other
+			{
+				std::uniform_int_distribution<int> uni(0, vespene_position);
+				auto random_refinery_position = uni(rng);
+
+				int position = 0;
+				auto it2 = skeleton_vector.begin();
+				do
+				{
+					if (position == random_refinery_position)
+					{
+						skeleton_vector.insert(it2, "refinery");
+						/*if (random_n_refinery == 2)
+						{
+							skeleton_vector.insert(it2, "refinery");
+						}*/
+						break;
+					}
+
+					++position;
+					++it2;
+				} while (it2 != skeleton_vector.end());
+
+				++n_refinery;
+
+				++count;
+				++vespene_position;
+			} while (n_refinery < random_n_refinery);
+
+			random_n_refinery = 0;
+		}
+
+		++count;
+		++it;
+	} while (it != skeleton_vector.end());
+	
 	ofstream listout;
 	listout.open("terran.txt");
-	if (temp.is_open())
+
+	for (auto it = skeleton_vector.begin(); it != skeleton_vector.end(); ++it)
 	{
-		string actualEvent;
-		while (temp >> actualEvent)
-		{
-			/*temp >> actualEvent;*/
-			mapNumber = ob.buildList[actualEvent];
-
-			if (mapNumber < 13) {
-				param_temp.supplyUsed += ob.buildDetails[mapNumber][4];
-			}
-			if (param_temp.totalSupCost - param_temp.supplyUsed < 0)
-			{
-				listout << "supply_depot\n";
-				param_temp.totalSupCost += 8;
-			}
-
-			listout << actualEvent << "\n";
-		}
+		listout << *it <<"\n";
 	}
-	/*
-	for (auto it = skeletonList.crbegin(); it != skeletonList.crend(); ++it)
-	{
-		//std::cout<<it->first<<std::endl;
-		mapNumber = it->first;
-		Pair m = *find_if
-		(ob.buildList.begin(), ob.buildList.end(),
-			[mapNumber](const Pair &p) { return p.second == mapNumber; }
-		);
-		skeout << m.first << "\n";
-	}*/
-	skeout.close();
-}
+	listout.close();
 
+}

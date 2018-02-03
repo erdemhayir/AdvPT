@@ -1631,8 +1631,6 @@ void Simulation::run(Simulation *sim, Terran *terran, Parameter &param, string &
 	}
 	else
 	{
-		/*if (!over)*/		//buildSuccess = sim->createCurrentBuild(actualEvent, *terran, param);
-
 		if (buildSuccess == 0) specialSuccess = sim->specialEvent(*terran, param);
 		if (specialSuccess > 0)
 		{
@@ -1643,12 +1641,7 @@ void Simulation::run(Simulation *sim, Terran *terran, Parameter &param, string &
 		if (terran->finish.size() > 0)
 			for (vector<int>::iterator it = terran->finish.begin(); it != terran->finish.end(); ++it)
 				sim->writeJson("build-end", *it, *terran, param);
-		//if (terran->start.size() > 0)
-		//	for (int i = buildSuccess; i != 0; i = sim->createCurrentBuild(actualEvent, *terran, param))
-		//	{
-		//		sim->writeJson("build-start", terran->buildList[actualEvent], *terran, param);
-		//		over = 1;							// means we started building the last item of buildlist
-		//	}
+
 		if (terran->finish.size() > 0)
 		{
 			if (sim->checkCreated(*terran) == 1 /*&& over == 1*/)
@@ -1688,11 +1681,17 @@ void Simulation::simulation(Simulation *sim, Terran *terran, Parameter &param, J
 		// ---------- SIMULATION ------------- //
 		sim->run(sim, terran, param, actualEvent, fin);
 
-		json_ob.OUT(terran, param);	// prints the details each step
+		//json_ob.OUT(terran, param);	// prints the details each step
 
 		if (param.wasJsonWritten == 1) json_ob.finishJson();
 		if (param.wasJsonWritten == 2) json_ob.finishJsonEnd();
 
+		if (takingTooLong > param.maxTime)
+		{
+			sim->error = -1;
+			break;
+		}
+		
 	} while (!sim->error && takingTooLong < param.maxTime);
 
 	json.open("stdout.json", fstream::app);
@@ -1710,6 +1709,61 @@ void Simulation::simulation(Simulation *sim, Terran *terran, Parameter &param, J
 		break;
 	default:
 		remove("stdout.json");	// Buildlist is invalid
-		cout << "{ \"game\": \"sc2-hots-terran\",\n\"buildlistValid\" : 0 \n}";
+		param.totalTime = takingTooLong;
+		//cout << "{ \"game\": \"sc2-hots-terran\",\n\"buildlistValid\" : 0 \n}";
+	}
+}
+
+void Simulation::simulationFinal(Simulation *sim, Terran *terran, Parameter &param, Json &json_ob)
+{
+	int takingTooLong = 0;
+
+	ofstream json;
+	json.open("stdout.json");
+	json << "{\n \"buildlistValid\" : 1,\n \"game\": \"sc2-hots-terran\",\n \"initialUnits\": {\n \"scv\": [\n \"init_scv_00\",\n \"init_scv_01\",\n \"init_scv_02\",\n \"init_scv_03\",\n \"init_scv_04\",\n \"init_scv_05\"],\n \"command_center\": [\"init_command_center\"]},\n \"messages\" : [\n";
+	json.close();
+
+	string actualEvent;
+	ifstream fin;
+	fin.open("terran.txt");
+	fin >> actualEvent;
+
+	// ---------- Loop ------------- //
+	do
+	{
+		terran->start.clear();
+		sim->buildSuccess = 0;
+		param.wasJsonWritten = 0;
+		++takingTooLong;
+		++param.Time;
+		param.minerals += param.workersInMinerals * 0.7 + param.mule * 0.7;
+		param.vespene += param.workersInVespene * 0.35;
+
+		// ---------- SIMULATION ------------- //
+		sim->run(sim, terran, param, actualEvent, fin);
+
+		//json_ob.OUT(terran, param);	// prints the details each step
+
+		if (param.wasJsonWritten == 1) json_ob.finishJson();
+		if (param.wasJsonWritten == 2) json_ob.finishJsonEnd();
+
+	} while (!sim->error && takingTooLong < param.maxTime);
+
+	json.open("stdout.json", fstream::app);
+	json << "]\n }";
+	json.close();
+
+	if (takingTooLong == param.maxTime)
+		sim->error = -1;		// Buildlist is invalid
+
+	switch (sim->error)
+	{
+	case 1:
+		json_ob.stdoutput();			// Buildlist is successful. Output in stdout.json
+		//param.totalTime = takingTooLong;
+		break;
+	default:
+		remove("stdout.json");	// Buildlist is invalid
+								//cout << "{ \"game\": \"sc2-hots-terran\",\n\"buildlistValid\" : 0 \n}";
 	}
 }

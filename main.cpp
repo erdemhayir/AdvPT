@@ -28,29 +28,43 @@ int main(int argc, char const *argv[])
 
 	int	minTime = param.maxTime;
 	std::list<optPair> finalBuildlist;
+	int count = 0;
 
 	do
 	{
-		Parameter temp_param = param;
+		Parameter *temp_param = new Parameter;
+		*temp_param = param;
 
 		Terran *terran = new Terran();
 		Simulation *sim = new Simulation();
-		Json json_ob;
+		Json *json_ob = new Json();
 
 		Optimization *opt = new Optimization();
 
-		opt->pushOptimization(*terran, temp_param, objectName);
-		sim->simulation(sim, terran, temp_param, json_ob);
+		opt->pushOptimization(*terran, *temp_param, objectName);
+		sim->simulation(sim, terran, *temp_param, *json_ob);
 
-		if (temp_param.totalTime < minTime)
+		delete terran;
+		delete sim;
+		delete json_ob;
+
+		if (temp_param->totalTime < minTime)
 		{
-			minTime = temp_param.totalTime;
+			minTime = temp_param->totalTime;
+			param.maxTime = minTime;
 			finalBuildlist = opt->skeletonList;
 		}
 
+		delete opt;
+
+		++count;
+
+		std::cout << minTime << std::endl;
+		delete temp_param;
+
 		end = get_time::now();
 		diff = end - start;
-	}while (diff.count() < 10.0);
+	}while (diff.count() < 120.0);
 	
 	{
 		Terran *terran = new Terran();
@@ -75,10 +89,13 @@ int main(int argc, char const *argv[])
 
 		sim->simulationFinal(sim, terran, param, json_ob);
 
+		delete terran;
+		delete sim;
+
 		//json_ob.stdoutput();
 	}
 
-	system("pause");
+	//system("pause");
 
 	return 0;
 	
